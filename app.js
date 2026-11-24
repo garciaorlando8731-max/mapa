@@ -1,153 +1,128 @@
 const map = L.map("map").setView([23.6345, -102.5528], 5);
-
 L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
   attribution: "&copy; OpenStreetMap contributors",
   maxZoom: 19
 }).addTo(map);
 
-let geojsonData = null;
-let indicadoresData = null;
-let capaEstados = null;
-let estadoSeleccionadoId = null;
+const paleta = ["#eff6ff", "#bfdbfe", "#60a5fa", "#2563eb", "#1e3a8a"];
+const clusterGroup = L.markerClusterGroup().addTo(map);
 
 const indicadorSelect = document.getElementById("indicadorSelect");
 const anioSelect = document.getElementById("anioSelect");
+const categoriaSelect = document.getElementById("categoriaSelect");
 const detalleEstado = document.getElementById("detalleEstado");
+const estadoCarga = document.getElementById("estadoCarga");
 
-function normalizarClave(valor) {
-  return String(valor ?? "").trim().padStart(2, "0");
-}
+let geojsonData, indicadoresData, puntosData = [], capaEstados, estadoSeleccionadoId = null;
 
-function obtenerValor(cveEntidad, indicador, anio) {
-  const registro = indicadoresData?.[anio]?.[cveEntidad];
-  if (!registro) return null;
-  const val = Number(registro[indicador]);
-  return Number.isFinite(val) ? val : null;
-}
+const getClave = (f) => {
+  const p = f.properties || {};
+  const raw = String(p.CVEGEO ?? p.CVE_ENT ?? p.CVE_EDO ?? p.clave_ent ?? p.clave ?? p.id ?? f.id ?? "").trim();
+  const dig = raw.replace(/\D/g, "");
+  return dig.length === 1 || dig.length === 2 ? dig.padStart(2, "0") : raw;
+};
 
-function obtenerUmbrales(indicador, anio) {
-  const valores = Object.values(indicadoresData?.[anio] || {})
-    .map((item) => Number(item[indicador]))
-    .filter((n) => Number.isFinite(n))
-    .sort((a, b) => a - b);
+const getNombre = (f, cve) => {
+  const p = f.properties || {};
+  return p.NOMGEO ?? p.NOM_ENT ?? p.NOM_EDO ?? p.nombre ?? p.name ?? `Entidad ${cve}`;
+};
 
-  if (!valores.length) return [0, 25, 50, 75];
-  const min = valores[0];
-  const max = valores[valores.length - 1];
-  const paso = (max - min) / 4;
-  return [
-    min,
-    min + paso,
-    min + paso * 2,
-    min + paso * 3
-  ];
-}
+const getValor = (cve, ind = indicadorSelect.value, anio = anioSelect.value) => {
+  const reg = indicadoresData?.[anio]?.[cve] ?? indicadoresData?.[anio]?.[String(Number(cve))];
+  const n = Number(reg?.[ind]);
+  return Number.isFinite(n) ? n : null;
+};
 
-function obtenerColor(valor, umbrales) {
-  const colores = ["#eff6ff", "#bfdbfe", "#60a5fa", "#2563eb", "#1e3a8a"];
-  if (valor === null || valor === undefined) return "#e5e7eb";
-  if (valor >= umbrales[3]) return colores[4];
-  if (valor >= umbrales[2]) return colores[3];
-  if (valor >= umbrales[1]) return colores[2];
-  if (valor >= umbrales[0]) return colores[1];
-  return colores[0];
-}
+const getUmbrales = (ind, anio) => {
+  const vals = Object.values(indicadoresData?.[anio] || {})
+    .map((x) => Number(x?.[ind])).filter(Number.isFinite).sort((a, b) => a - b);
+  if (!vals.length) return [0, 25, 50, 75];
+  const min = vals[0], paso = (vals[vals.length - 1] - min) / 4;
+  return [min, min + paso, min + paso * 2, min + paso * 3];
+};
 
-function formatearValor(valor, indicador) {
-  if (valor === null || valor === undefined) return "Sin dato";
-  if (indicador === "escolaridad") return `${valor.toFixed(1)} años`;
-  return valor.toLocaleString("es-MX");
-}
+const getColor = (val, umb) => {
+  if (val === null || val === undefined) return "#e5e7eb";
+  for (let i = umb.length - 1; i >= 0; i--) {
+    if (val >= umb[i]) return paleta[i + 1];
+  }
+  return paleta[0];
+};
+
+const fmtValor = (val, ind) =>
+  val === null || val === undefined
+    ? "Sin dato"
+    : ind === "escolaridad"
+      ? `${val.toFixed(1)} años`
+      : `${Math.round(val).toLocaleString("es-MX")} hab.`;
 
 const leyenda = L.control({ position: "bottomright" });
-
 leyenda.onAdd = function () {
   this._div = L.DomUtil.create("div", "legend");
   this.actualizar();
   return this._div;
 };
-
 leyenda.actualizar = function () {
   if (!this._div || !indicadoresData) return;
-  const indicador = indicadorSelect.value;
-  const anio = anioSelect.value;
-  const umbrales = obtenerUmbrales(indicador, anio);
-  const colores = ["#bfdbfe", "#60a5fa", "#2563eb", "#1e3a8a"];
+  const ind = indicadorSelect.value, anio = anioSelect.value;
+  const etiqueta = indicadorSelect.options[indicadorSelect.selectedIndex].text;
+  const umb = getUmbrales(ind, anio);
 
-  let html = `<strong>${indicadorSelect.options[indicadorSelect.selectedIndex].text} (${anio})</strong><br/>`;
-  for (let i = 0; i < umbrales.length; i++) {
-    const inicio = formatearValor(umbrales[i], indicador);
-    const fin = umbrales[i + 1] !== undefined ? formatearValor(umbrales[i + 1], indicador) : "Máx";
-    html += `<i style="background:${colores[i] || "#1e3a8a"}"></i> ${inicio} – ${fin}<br/>`;
+  let html = `<strong>${etiqueta} (${anio})</strong>
+    <div class="legend-item"><span class="legend-color" style="background:${paleta[0]}"></span><span>Menor a ${fmtValor(umb[0], ind)}</span></div>`;
+
+  for (let i = 0; i < umb.length; i++) {
+    const fin = i < umb.length - 1 ? fmtValor(umb[i + 1], ind) : "Máximo";
+    html += `<div class="legend-item"><span class="legend-color" style="background:${paleta[i + 1]}"></span><span>${fmtValor(umb[i], ind)} – ${fin}</span></div>`;
   }
+  html += `<div class="legend-item"><span class="legend-color" style="background:#e5e7eb"></span><span>Sin dato</span></div>`;
   this._div.innerHTML = html;
 };
-
 leyenda.addTo(map);
 
-function estiloEstado(feature) {
-  const cve = normalizarClave(
-    feature.properties.CVEGEO ?? feature.properties.CVE_ENT ?? feature.properties.id
-  );
-  const valor = obtenerValor(cve, indicadorSelect.value, anioSelect.value);
-  const umbrales = obtenerUmbrales(indicadorSelect.value, anioSelect.value);
-  const esSeleccionado = estadoSeleccionadoId === cve;
-
+const estiloEstado = (f) => {
+  const cve = getClave(f);
+  const sel = estadoSeleccionadoId === cve;
   return {
-    fillColor: obtenerColor(valor, umbrales),
-    weight: esSeleccionado ? 3 : 1.2,
+    fillColor: getColor(getValor(cve), getUmbrales(indicadorSelect.value, anioSelect.value)),
+    weight: sel ? 3 : 1.2,
     opacity: 1,
-    color: esSeleccionado ? "#111827" : "#4b5563",
-    fillOpacity: 0.8
+    color: sel ? "#0f172a" : "#475569",
+    fillOpacity: 0.78
   };
-}
+};
 
-function mostrarDetalle(props, cve) {
-  const nombre = props.NOMGEO ?? props.NOM_ENT ?? props.name ?? `Entidad ${cve}`;
-  const valorActual = obtenerValor(cve, indicadorSelect.value, anioSelect.value);
-  const etiqueta = indicadorSelect.options[indicadorSelect.selectedIndex].text;
-
+function mostrarDetalle(f, cve) {
+  const anio = anioSelect.value;
   detalleEstado.innerHTML = `
-    <p><strong>Estado:</strong> ${nombre} (Clave: ${cve})</p>
-    <p><strong>Año:</strong> ${anioSelect.value}</p>
-    <p><strong>${etiqueta}:</strong> ${formatearValor(valorActual, indicadorSelect.value)}</p>
+    <p><strong>Estado:</strong> ${getNombre(f, cve)}</p>
+    <p><strong>Clave de entidad:</strong> ${cve || "N/D"}</p>
+    <p><strong>Año consultado:</strong> ${anio}</p>
+    <p><strong>Población total:</strong> ${fmtValor(getValor(cve, "poblacion", anio), "poblacion")}</p>
+    <p><strong>Escolaridad promedio:</strong> ${fmtValor(getValor(cve, "escolaridad", anio), "escolaridad")}</p>
   `;
 }
 
 function renderizarEstados() {
   if (!geojsonData || !indicadoresData) return;
-
-  if (capaEstados) {
-    map.removeLayer(capaEstados);
-  }
+  if (capaEstados) map.removeLayer(capaEstados);
 
   capaEstados = L.geoJSON(geojsonData, {
     style: estiloEstado,
-    onEachFeature: (feature, layer) => {
-      const cve = normalizarClave(
-        feature.properties.CVEGEO ?? feature.properties.CVE_ENT ?? feature.properties.id
-      );
-      const nombre = feature.properties.NOMGEO ?? feature.properties.NOM_ENT ?? feature.properties.name ?? `Entidad ${cve}`;
-
+    onEachFeature: (f, layer) => {
+      const cve = getClave(f), nombre = getNombre(f, cve);
       layer.bindTooltip("", { sticky: true });
-
       layer.on("mouseover", () => {
-        const valor = obtenerValor(cve, indicadorSelect.value, anioSelect.value);
-        layer.setTooltipContent(
-          `<strong>${nombre}</strong><br/>${formatearValor(valor, indicadorSelect.value)}`
-        );
-        layer.setStyle({ weight: 2.5, color: "#111827" });
-        layer.bringToFront();
+        const ind = indicadorSelect.value;
+        const etq = indicadorSelect.options[indicadorSelect.selectedIndex].text;
+        layer.setTooltipContent(`<strong>${nombre}</strong><br/>${etq}: ${fmtValor(getValor(cve, ind), ind)}`);
+        layer.setStyle({ weight: 2.5, color: "#0f172a" }).bringToFront();
       });
-
-      layer.on("mouseout", () => {
-        capaEstados.resetStyle(layer);
-      });
-
+      layer.on("mouseout", () => capaEstados.resetStyle(layer));
       layer.on("click", () => {
         estadoSeleccionadoId = cve;
         capaEstados.setStyle(estiloEstado);
-        mostrarDetalle(feature.properties, cve);
+        mostrarDetalle(f, cve);
       });
     }
   }).addTo(map);
@@ -155,52 +130,54 @@ function renderizarEstados() {
   leyenda.actualizar();
 }
 
-function cargarCapaPuntos(puntosData) {
-  const clusterGroup = L.markerClusterGroup();
+function renderizarPuntos() {
+  clusterGroup.clearLayers();
+  const cat = categoriaSelect.value;
+  const items = Array.isArray(puntosData) ? puntosData : (puntosData?.features || []);
 
-  (puntosData.features || puntosData || []).forEach((item) => {
-    const coords = item.geometry?.coordinates;
-    const props = item.properties || item;
+  items.forEach((item) => {
+    const p = item.properties || item, c = item.geometry?.coordinates;
+    const lat = Number(Array.isArray(c) ? c[1] : p.lat);
+    const lng = Number(Array.isArray(c) ? c[0] : p.lng);
+    const tipo = p.tipo || "Punto de interés";
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || (cat !== "todos" && tipo !== cat)) return;
 
-    let lat, lng;
-    if (Array.isArray(coords) && coords.length >= 2) {
-      lng = Number(coords[0]);
-      lat = Number(coords[1]);
-    } else {
-      lat = Number(props.lat);
-      lng = Number(props.lng);
-    }
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    const marker = L.marker([lat, lng]);
-    const titulo = props.nombre ?? "Punto de interés";
-    const tipo = props.tipo ?? "Categoría";
-    const estado = props.estado ?? "";
-
-    marker.bindPopup(`<strong>${titulo}</strong><br/>${tipo}${estado ? ` — ${estado}` : ""}`);
-    clusterGroup.addLayer(marker);
+    const m = L.marker([lat, lng]).bindPopup(
+      `<strong>${p.nombre || "Sin nombre"}</strong><br/>Tipo: ${tipo}${p.estado ? `<br/>Estado: ${p.estado}` : ""}`
+    );
+    clusterGroup.addLayer(m);
   });
-
-  map.addLayer(clusterGroup);
 }
 
+const cargarJSON = async (ruta) => {
+  const r = await fetch(ruta);
+  if (!r.ok) throw new Error(`No se pudo cargar ${ruta} (HTTP ${r.status})`);
+  return r.json();
+};
+
 async function iniciarMapa() {
-  const [resGeo, resInd, resPuntos] = await Promise.all([
-    fetch("./data/estados.geojson"),
-    fetch("./data/indicadores.json"),
-    fetch("./data/puntos.json")
-  ]);
-
-  geojsonData = await resGeo.json();
-  indicadoresData = await resInd.json();
-  const puntosData = await resPuntos.json();
-
-  renderizarEstados();
-  cargarCapaPuntos(puntosData);
+  estadoCarga.textContent = "";
+  try {
+    [geojsonData, indicadoresData, puntosData] = await Promise.all([
+      cargarJSON("./data/estados.geojson"),
+      cargarJSON("./data/indicadores.json"),
+      cargarJSON("./data/puntos.json")
+    ]);
+    renderizarEstados();
+    renderizarPuntos();
+  } catch (err) {
+    console.error(err);
+    estadoCarga.textContent = `Aviso: ${err.message}. Revisa los archivos en ./data/.`;
+  }
 }
 
 indicadorSelect.addEventListener("change", renderizarEstados);
-anioSelect.addEventListener("change", renderizarEstados);
+anioSelect.addEventListener("change", () => {
+  renderizarEstados();
+  capaEstados?.eachLayer((l) => {
+    if (getClave(l.feature) === estadoSeleccionadoId) mostrarDetalle(l.feature, estadoSeleccionadoId);
+  });
+});
+categoriaSelect.addEventListener("change", renderizarPuntos);
 
 iniciarMapa();

@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "CVEGEO": "24",
+        "NOMGEO": "San Luis Potosí"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-102.30, 24.45],
+            [-100.80, 24.45],
+            [-100.80, 21.15],
+            [-102.30, 21.15],
+            [-102.30, 24.45]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "CVEGEO": "09",
+        "NOMGEO": "Ciudad de México"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-99.36, 19.59],
+            [-98.94, 19.59],
+            [-98.94, 19.05],
+            [-99.36, 19.05],
+            [-99.36, 19.59]
+          ]
+        ]
+      }
+    }
+  ]
+}

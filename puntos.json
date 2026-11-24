@@ -1,0 +1,13 @@
+[
+  { "nombre": "UASLP Zona Universitaria", "tipo": "Universidad", "estado": "San Luis Potosí", "lat": 22.1485, "lng": -101.0156 },
+  { "nombre": "Instituto Tecnológico de SLP", "tipo": "Universidad", "estado": "San Luis Potosí", "lat": 22.1476, "lng": -100.9317 },
+  { "nombre": "ITS San Luis Potosí Capital", "tipo": "Universidad", "estado": "San Luis Potosí", "lat": 22.1132, "lng": -100.9015 },
+  { "nombre": "Hospital Central Dr. Ignacio Morones Prieto", "tipo": "Hospital", "estado": "San Luis Potosí", "lat": 22.1389, "lng": -101.0085 },
+  { "nombre": "UNAM Ciudad Universitaria", "tipo": "Universidad", "estado": "Ciudad de México", "lat": 19.3326, "lng": -99.1956 },
+  { "nombre": "IPN Zacatenco", "tipo": "Universidad", "estado": "Ciudad de México", "lat": 19.5045, "lng": -99.1469 },
+  { "nombre": "Centro Médico Nacional Siglo XXI", "tipo": "Hospital", "estado": "Ciudad de México", "lat": 19.4077, "lng": -99.1536 },
+  { "nombre": "UANL Ciudad Universitaria", "tipo": "Universidad", "estado": "Nuevo León", "lat": 25.7245, "lng": -100.3125 },
+  { "nombre": "Hospital Universitario Dr. José Eleuterio González", "tipo": "Hospital", "estado": "Nuevo León", "lat": 25.6914, "lng": -100.3472 },
+  { "nombre": "Universidad de Guadalajara", "tipo": "Universidad", "estado": "Jalisco", "lat": 20.6597, "lng": -103.3496 },
+  { "nombre": "Hospital Civil de Guadalajara", "tipo": "Hospital", "estado": "Jalisco", "lat": 20.6852, "lng": -103.3611 }
+]

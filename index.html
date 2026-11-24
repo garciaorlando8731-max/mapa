@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mapa Interactivo con Datos Abiertos</title>
+  <title>Mapa Interactivo con Datos Abiertos - ISD</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
@@ -11,7 +11,10 @@
 </head>
 <body>
   <header class="topbar">
-    <h1>Indicadores Estatales y Puntos de Interés en México</h1>
+    <div>
+      <h1>Indicadores Estatales y Puntos de Interés en México</h1>
+      <p class="subtitle">Actividad 2 · Interacción de Servicios Digitales</p>
+    </div>
     <div class="controls">
       <label for="indicadorSelect">Indicador:</label>
       <select id="indicadorSelect">
@@ -24,16 +27,24 @@
         <option value="2020">2020</option>
         <option value="2024">2024</option>
       </select>
+
+      <label for="categoriaSelect">Puntos:</label>
+      <select id="categoriaSelect">
+        <option value="todos">Todos</option>
+        <option value="Universidad">Universidades</option>
+        <option value="Hospital">Hospitales</option>
+      </select>
     </div>
   </header>
 
   <main class="layout">
-    <section id="map" class="map-container"></section>
+    <section id="map" class="map-container" aria-label="Mapa interactivo"></section>
     <aside class="sidebar">
       <h2>Detalle del estado</h2>
       <div id="detalleEstado" class="detalle-box">
-        Pasa el cursor sobre un estado para ver su resumen o haz clic para fijar su detalle.
+        <p>Pasa el cursor sobre un estado para ver su valor o haz clic para consultar su detalle.</p>
       </div>
+      <div id="estadoCarga" class="estado-carga"></div>
     </aside>
   </main>
 
