@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapa Interactivo con Datos Abiertos</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Indicadores Estatales y Puntos de Interés en México</h1>
+    <div class="controls">
+      <label for="indicadorSelect">Indicador:</label>
+      <select id="indicadorSelect">
+        <option value="poblacion">Población total</option>
+        <option value="escolaridad">Grado promedio de escolaridad</option>
+      </select>
+
+      <label for="anioSelect">Año:</label>
+      <select id="anioSelect">
+        <option value="2020">2020</option>
+        <option value="2024">2024</option>
+      </select>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section id="map" class="map-container"></section>
+    <aside class="sidebar">
+      <h2>Detalle del estado</h2>
+      <div id="detalleEstado" class="detalle-box">
+        Pasa el cursor sobre un estado para ver su resumen o haz clic para fijar su detalle.
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
